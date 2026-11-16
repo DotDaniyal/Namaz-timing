@@ -55,6 +55,12 @@
   background-size: 64px 64px;
 }
 
+.islamic-emerald-bg {
+  background-color: #07271c;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cg fill='none' stroke='%23C9A24D' stroke-opacity='0.065' stroke-width='1'%3E%3Cpolygon points='44,6 54,34 82,44 54,54 44,82 34,54 6,44 34,34'/%3E%3Crect x='22' y='22' width='44' height='44' transform='rotate(45 44 44)'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 88px 88px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

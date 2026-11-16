@@ -22,6 +22,12 @@ export const COPY: Record<
     detailsShow: string;
     detailsHide: string;
     qazaPolicyCaption: string;
+    activeNow: string;
+    activePeriodPrefix: string;
+    noActivePeriod: string;
+    currentPrayerCap: string;
+    upcomingNextCap: string;
+    sunriseTulu: string;
     nextLabel: string;
     jumuahTitle: string;
     jumuahNotSet: string;
@@ -75,6 +81,12 @@ export const COPY: Record<
     detailsShow: 'Details',
     detailsHide: 'Hide',
     qazaPolicyCaption: 'Karachi Method 1 · Hanafi Fiqh',
+    activeNow: 'Active Now',
+    activePeriodPrefix: 'Active Window',
+    noActivePeriod: 'No active fard prayer window right now',
+    currentPrayerCap: 'CURRENT PRAYER',
+    upcomingNextCap: 'UPCOMING NEXT',
+    sunriseTulu: 'Sunrise (Tulu)',
     nextLabel: 'Upcoming',
     jumuahTitle: "Jumu'ah Prayer",
     jumuahNotSet: "Jumu'ah timing will be updated by mosque administration.",
@@ -141,6 +153,12 @@ export const COPY: Record<
     detailsShow: 'تفصیل',
     detailsHide: 'بند',
     qazaPolicyCaption: 'کراچی طریقہ ۱ · فقہ حنفی',
+    activeNow: 'موجودہ وقت',
+    activePeriodPrefix: 'فعال وقتِ نماز',
+    noActivePeriod: 'اس وقت کسی فرض نماز کا وقت فعال نہیں',
+    currentPrayerCap: 'موجودہ نماز',
+    upcomingNextCap: 'اگلی نماز',
+    sunriseTulu: 'طلوعِ آفتاب',
     nextLabel: 'اگلی',
     jumuahTitle: 'جمعہ کی نماز',
     jumuahNotSet: 'جمعہ کی نماز کا وقت مسجد انتظامیہ جلد مقرر کرے گی۔',

@@ -99,20 +99,25 @@ export interface PrayerEndingStatus {
   isInActiveWindow: boolean;
   isEndingSoon: boolean;
   remainingMinutes: number;
+  effectiveEnd24?: string;
+  effectiveEnd12?: string;
 }
 
 /**
  * Evaluates whether a prayer is currently in its valid astronomical window
  * and whether its ending time (Qaza threshold) is approaching within `thresholdMinutes`.
+ * Optionally accepts `forcedEnd24` (e.g. today's Fajr start when Isha is in the pre-dawn Subh Sadiq window).
  */
 export function getPrayerEndingStatus(
   prayer: PrayerItem,
   clock: KarachiClockSnapshot,
   thresholdMinutes: number,
+  forcedEnd24?: string,
 ): PrayerEndingStatus {
   const startSec = parse24ToSeconds(prayer.astroStart24);
-  const endSec = parse24ToSeconds(prayer.endTime24);
-  if (startSec === null || endSec === null) {
+  const effectiveEnd24 = forcedEnd24 || prayer.endTime24;
+  const endSec = parse24ToSeconds(effectiveEnd24);
+  if (startSec === null || endSec === null || startSec === endSec) {
     return { isInActiveWindow: false, isEndingSoon: false, remainingMinutes: 0 };
   }
 
@@ -132,13 +137,92 @@ export function getPrayerEndingStatus(
     }
   }
 
-  if (remainingSec < 0) {
+  if (remainingSec <= 0) {
     return { isInActiveWindow: false, isEndingSoon: false, remainingMinutes: 0 };
   }
 
   const remainingMinutes = Math.ceil(remainingSec / 60);
   const isEndingSoon = thresholdMinutes > 0 && remainingMinutes <= thresholdMinutes;
-  return { isInActiveWindow: true, isEndingSoon, remainingMinutes };
+  return {
+    isInActiveWindow: true,
+    isEndingSoon,
+    remainingMinutes,
+    effectiveEnd24,
+    effectiveEnd12: formatTime24To12Client(effectiveEnd24),
+  };
+}
+
+export interface ActivePrayerState {
+  activePrayer: PrayerItem | null;
+  endingStatus: PrayerEndingStatus;
+}
+
+/**
+ * Deterministically detects the single currently active prayer period in Asia/Karachi time.
+ * Handles:
+ * - Sunrise -> Dhuhr Start gap (no prayer active)
+ * - Midnight & post-midnight Isha -> Fajr transitions (zero gap / zero overlap)
+ * - Reverse-chronological precedence so overlapping manual overrides never activate two prayers
+ */
+export function getActivePrayerState(
+  prayers: PrayerItem[],
+  clock: KarachiClockSnapshot,
+  thresholdMinutes: number,
+  ishaEndRule?: 'subh_sadiq' | 'islamic_midnight' | 'first_third',
+): ActivePrayerState {
+  const byKey = new Map<PrayerItem['key'], PrayerItem>();
+  for (const p of prayers) {
+    byKey.set(p.key, p);
+  }
+
+  const fajr = byKey.get('fajr');
+  const fajrStartSec = fajr ? parse24ToSeconds(fajr.astroStart24) : null;
+  const nowSec = clock.hours24 * 3600 + clock.minutes * 60 + clock.seconds;
+
+  // 1. Check same-day / post-Fajr daytime prayers in reverse chronological order:
+  //    Isha (if now >= ishaStart), Maghrib, Asr, Zuhr, Fajr
+  const isha = byKey.get('isha');
+  if (isha) {
+    const ishaStartSec = parse24ToSeconds(isha.astroStart24);
+    if (ishaStartSec !== null && nowSec >= ishaStartSec) {
+      const status = getPrayerEndingStatus(isha, clock, thresholdMinutes);
+      if (status.isInActiveWindow) {
+        return { activePrayer: isha, endingStatus: status };
+      }
+    }
+  }
+
+  const daytimeOrder: Array<PrayerItem['key']> = ['maghrib', 'asr', 'zuhr', 'fajr'];
+  for (const key of daytimeOrder) {
+    const prayer = byKey.get(key);
+    if (!prayer) continue;
+    const status = getPrayerEndingStatus(prayer, clock, thresholdMinutes);
+    if (status.isInActiveWindow) {
+      return { activePrayer: prayer, endingStatus: status };
+    }
+  }
+
+  // 2. Check post-midnight Isha window (00:00 -> Fajr start or Islamic Midnight)
+  if (isha && (fajrStartSec === null || nowSec < fajrStartSec)) {
+    const ishaStartSec = parse24ToSeconds(isha.astroStart24);
+    const ishaEndSec = parse24ToSeconds(isha.endTime24);
+    if (ishaStartSec !== null && ishaEndSec !== null && ishaEndSec < ishaStartSec) {
+      // When in pre-dawn morning under Subh Sadiq rule, today's Fajr start is the exact morning Subh Sadiq boundary
+      const forcedMorningEnd =
+        !isha.isEndOverridden && ishaEndRule === 'subh_sadiq' && fajr?.astroStart24
+          ? fajr.astroStart24
+          : undefined;
+      const status = getPrayerEndingStatus(isha, clock, thresholdMinutes, forcedMorningEnd);
+      if (status.isInActiveWindow) {
+        return { activePrayer: isha, endingStatus: status };
+      }
+    }
+  }
+
+  return {
+    activePrayer: null,
+    endingStatus: { isInActiveWindow: false, isEndingSoon: false, remainingMinutes: 0 },
+  };
 }
 
 export function formatTime24To12Client(time24: string): string {
