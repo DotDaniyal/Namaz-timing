@@ -25,6 +25,7 @@ import {
   type KarachiClockSnapshot,
 } from '../utils/karachiClock';
 import { AnnualScheduleModal } from './AnnualScheduleModal';
+import { LegalModal } from './LegalModal';
 import { MosqueEmblem } from './MosqueEmblem';
 
 interface PublicTimetableProps {
@@ -60,6 +61,7 @@ export const PublicTimetable: React.FC<PublicTimetableProps> = ({
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [expandedActiveKey, setExpandedActiveKey] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | null>(null);
 
   const toggleActivePrayerDetails = (key: string) => {
     setExpandedActiveKey((prev) => (prev === key ? null : key));
@@ -1575,6 +1577,20 @@ export const PublicTimetable: React.FC<PublicTimetableProps> = ({
             >
               {t.adminAccess}
             </button>
+            <button
+              type="button"
+              onClick={() => setLegalModal('privacy')}
+              className="hover:text-[#E2C16B] transition-colors cursor-pointer"
+            >
+              {isUrdu ? 'رازداری' : 'Privacy'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLegalModal('terms')}
+              className="hover:text-[#E2C16B] transition-colors cursor-pointer"
+            >
+              {isUrdu ? 'شرائط' : 'Terms'}
+            </button>
           </div>
         </div>
       </footer>
@@ -1583,6 +1599,13 @@ export const PublicTimetable: React.FC<PublicTimetableProps> = ({
       <AnnualScheduleModal
         open={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
+        language={language}
+      />
+
+      {/* Legal Policy Modal */}
+      <LegalModal
+        type={legalModal}
+        onClose={() => setLegalModal(null)}
         language={language}
       />
 
