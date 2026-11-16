@@ -1,10 +1,18 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync as NodeDatabaseSync } from 'node:sqlite';
 import { PDF_ANNUAL_SCHEDULE } from './pdfSchedule.ts';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+type DatabaseSync = NodeDatabaseSync;
+
+const IS_SERVERLESS = Boolean(
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NOW_REGION,
+);
+const DATA_DIR = IS_SERVERLESS
+  ? path.join('/tmp', 'masjid-bilal-data')
+  : path.resolve(process.cwd(), 'data');
 const DB_PATH = path.join(DATA_DIR, 'masjid_bilal.db');
 
 let dbInstance: DatabaseSync | null = null;
@@ -27,7 +35,11 @@ export function getDb(): DatabaseSync {
   if (dbInstance) return dbInstance;
 
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  const db = new DatabaseSync(DB_PATH);
+  const req = createRequire(import.meta.url);
+  const { DatabaseSync: SqliteDatabaseSync } = req('node:sqlite') as {
+    DatabaseSync: typeof NodeDatabaseSync;
+  };
+  const db = new SqliteDatabaseSync(DB_PATH);
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
 

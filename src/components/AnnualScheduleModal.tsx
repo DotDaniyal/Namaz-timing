@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { AnnualScheduleRow, Language } from '../types/timetable';
+import { PDF_ANNUAL_SCHEDULE } from '../utils/annualScheduleData';
 import { COPY, MONTH_NAMES_EN, MONTH_NAMES_UR } from '../utils/i18n';
 import { formatTime24To12Client } from '../utils/karachiClock';
 
@@ -35,8 +36,16 @@ export const AnnualScheduleModal: React.FC<AnnualScheduleModalProps> = ({
           setRows(data.rows || []);
         }
       })
-      .catch((err) => {
-        if (!cancelled) setError(err.message);
+      .catch(() => {
+        if (!cancelled) {
+          setRows(
+            PDF_ANNUAL_SCHEDULE.map((row, index) => ({
+              id: index + 1,
+              ...row,
+              is_default_pdf: 1,
+            })),
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

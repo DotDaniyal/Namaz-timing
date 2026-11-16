@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminPanel } from './components/AdminPanel';
 import { PublicTimetable } from './components/PublicTimetable';
 import type { Language, TimetablePayload } from './types/timetable';
+import { buildClientFallbackTimetable } from './utils/fallbackTimetable';
 
 export default function App() {
   const [view, setView] = useState<'public' | 'admin'>('public');
@@ -35,9 +36,11 @@ export default function App() {
   const [error, setError] = useState('');
 
   const fetchTimetable = useCallback(async () => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 8000);
     try {
       setError('');
-      const res = await fetch('/api/timetable/today');
+      const res = await fetch('/api/timetable/today', { signal: controller.signal });
       if (!res.ok) throw new Error('Unable to load daily prayer timetable');
       const data = (await res.json()) as TimetablePayload;
       setTimetable(data);
@@ -46,9 +49,16 @@ export default function App() {
       } catch {
         // Ignore storage quota errors
       }
-    } catch (err) {
-      setError((err as Error).message || 'Network error');
+    } catch {
+      try {
+        const fallback = await buildClientFallbackTimetable();
+        setTimetable(fallback);
+        setError('');
+      } catch (fallbackErr) {
+        setError((fallbackErr as Error).message || 'Network error');
+      }
     } finally {
+      window.clearTimeout(timer);
       setLoading(false);
     }
   }, []);
