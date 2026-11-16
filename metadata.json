@@ -1,0 +1,6 @@
+{
+  "name": "Masjid-e-Bilal Prayer Timetable",
+  "description": "Official daily prayer timetable, Karachi sunset-based Maghrib timing, Islamic Hijri calendar, Jumu'ah, Eid, and mosque announcements for Masjid-e-Bilal (مسجدِ بلال).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
