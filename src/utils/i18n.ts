@@ -29,6 +29,16 @@ export const COPY: Record<
     upcomingNextCap: string;
     sunriseTulu: string;
     nextLabel: string;
+    navTimings: string;
+    navJumuah: string;
+    navSchedule: string;
+    navNotices: string;
+    bayanStartsLabel: string;
+    khutbahStartsLabel: string;
+    jumuahPrayerLabel: string;
+    quranQuoteAr: string;
+    quranQuoteTrans: string;
+    quranQuoteRef: string;
     jumuahTitle: string;
     jumuahNotSet: string;
     eidFitrTitle: string;
@@ -88,6 +98,16 @@ export const COPY: Record<
     upcomingNextCap: 'UPCOMING NEXT',
     sunriseTulu: 'Sunrise (Tulu)',
     nextLabel: 'Upcoming',
+    navTimings: 'Timings',
+    navJumuah: "Jumu'ah",
+    navSchedule: 'Schedule',
+    navNotices: 'Notices',
+    bayanStartsLabel: 'Bayan Starts',
+    khutbahStartsLabel: 'Khutbah Starts',
+    jumuahPrayerLabel: "Jumu'ah Prayer",
+    quranQuoteAr: 'إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا',
+    quranQuoteTrans: 'Indeed, prayer has been decreed upon the believers a decree of specified times.',
+    quranQuoteRef: "Surah An-Nisa · 4:103",
     jumuahTitle: "Jumu'ah Prayer",
     jumuahNotSet: "Jumu'ah timing will be updated by mosque administration.",
     eidFitrTitle: 'Eid-ul-Fitr Prayer',
@@ -160,6 +180,16 @@ export const COPY: Record<
     upcomingNextCap: 'اگلی نماز',
     sunriseTulu: 'طلوعِ آفتاب',
     nextLabel: 'اگلی',
+    navTimings: 'اوقاتِ نماز',
+    navJumuah: 'جمعہ',
+    navSchedule: 'سالانہ نقشہ',
+    navNotices: 'اعلانات',
+    bayanStartsLabel: 'بیان شروع ہونے کا وقت',
+    khutbahStartsLabel: 'خطبہ شروع ہونے کا وقت',
+    jumuahPrayerLabel: 'نمازِ جمعہ کا وقت',
+    quranQuoteAr: 'إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا',
+    quranQuoteTrans: 'بے شک نماز مومنوں پر مقررہ وقت پر فرض ہے۔',
+    quranQuoteRef: 'سورۃ النساء · آیت ۱۰۳',
     jumuahTitle: 'جمعہ کی نماز',
     jumuahNotSet: 'جمعہ کی نماز کا وقت مسجد انتظامیہ جلد مقرر کرے گی۔',
     eidFitrTitle: 'نمازِ عید الفطر',

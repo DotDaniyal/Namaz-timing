@@ -69,6 +69,8 @@ interface AdminOverview {
   timetable: TimetablePayload;
   settings: {
     zuhr_fixed_time: string;
+    jumuah_bayan_time: string;
+    jumuah_khutbah_time: string;
     jumuah_time: string;
     jumuah_show_all_week: number;
     jumuah_note_en: string;
@@ -164,8 +166,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
   const [karachiCountry, setKarachiCountry] = useState('Pakistan');
 
   // Jumu'ah & Eid state
-  const [jumuahTime, setJumuahTime] = useState('');
-  const [jumuahAllWeek, setJumuahAllWeek] = useState(false);
+  const [bayanTime, setBayanTime] = useState('12:30');
+  const [khutbahTime, setKhutbahTime] = useState('13:15');
+  const [jumuahTime, setJumuahTime] = useState('13:30');
+  const [jumuahAllWeek, setJumuahAllWeek] = useState(true);
   const [jumuahNoteEn, setJumuahNoteEn] = useState('');
   const [jumuahNoteUr, setJumuahNoteUr] = useState('');
 
@@ -248,7 +252,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
       setKarachiCity(data.settings.karachi_city || 'Karachi');
       setKarachiCountry(data.settings.karachi_country || 'Pakistan');
 
-      setJumuahTime(data.settings.jumuah_time || '');
+      setBayanTime(data.settings.jumuah_bayan_time || '12:30');
+      setKhutbahTime(data.settings.jumuah_khutbah_time || '13:15');
+      setJumuahTime(data.settings.jumuah_time || '13:30');
       setJumuahAllWeek(data.settings.jumuah_show_all_week === 1);
       setJumuahNoteEn(data.settings.jumuah_note_en || '');
       setJumuahNoteUr(data.settings.jumuah_note_ur || '');
@@ -457,6 +463,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        bayanTime,
+        khutbahTime,
         jumuahTime,
         showAllWeek: jumuahAllWeek,
         noteEn: jumuahNoteEn,
@@ -1623,14 +1631,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1">Jumu'ah Jamaat Time</label>
-                <input
-                  type="time"
-                  value={jumuahTime}
-                  onChange={(e) => setJumuahTime(e.target.value)}
-                  className="w-full min-h-[44px] rounded-xl border border-[#0B3B2B]/20 bg-[#FAF8F4] px-3 text-sm font-mono-tabular"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Bayan Starts</label>
+                  <input
+                    type="time"
+                    value={bayanTime}
+                    onChange={(e) => setBayanTime(e.target.value)}
+                    className="w-full min-h-[44px] rounded-xl border border-[#0B3B2B]/20 bg-[#FAF8F4] px-3 text-sm font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Khutbah Starts</label>
+                  <input
+                    type="time"
+                    value={khutbahTime}
+                    onChange={(e) => setKhutbahTime(e.target.value)}
+                    className="w-full min-h-[44px] rounded-xl border border-[#0B3B2B]/20 bg-[#FAF8F4] px-3 text-sm font-mono-tabular"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Jumu'ah Prayer</label>
+                  <input
+                    type="time"
+                    value={jumuahTime}
+                    onChange={(e) => setJumuahTime(e.target.value)}
+                    className="w-full min-h-[44px] rounded-xl border border-[#0B3B2B]/20 bg-[#FAF8F4] px-3 text-sm font-mono-tabular"
+                  />
+                </div>
               </div>
 
               <label className="flex items-center gap-3 p-3 rounded-xl border border-[#0B3B2B]/12 cursor-pointer">

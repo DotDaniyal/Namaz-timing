@@ -69,7 +69,7 @@ export const AnnualScheduleModal: React.FC<AnnualScheduleModalProps> = ({
         <div className="flex items-center justify-between gap-4 px-5 py-4 bg-[#0B3B2B] text-[#FAF8F4]">
           <h2
             id="annual-schedule-title"
-            className={`text-base sm:text-lg font-semibold ${language === 'ur' ? 'font-arabic' : 'font-display tracking-wide'}`}
+            className={`text-base sm:text-lg font-semibold ${language === 'ur' ? 'font-urdu' : 'font-display tracking-wide'}`}
           >
             {t.annualScheduleTitle}
           </h2>
@@ -83,7 +83,12 @@ export const AnnualScheduleModal: React.FC<AnnualScheduleModalProps> = ({
           </button>
         </div>
 
-        <div className="px-5 py-3 bg-[#F3EFE6] border-b border-[#0B3B2B]/10 text-xs sm:text-sm text-[#15241E]/80">
+        <div
+          className={`px-5 py-3 bg-[#F3EFE6] border-b border-[#0B3B2B]/10 text-xs sm:text-sm text-[#15241E]/80 ${
+            language === 'ur' ? 'font-urdu text-right' : ''
+          }`}
+          dir={language === 'ur' ? 'rtl' : 'ltr'}
+        >
           {t.zuhrNotice}
         </div>
 

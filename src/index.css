@@ -13,7 +13,7 @@
   html {
     background-color: var(--bg-ivory);
     color: #15241e;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -26,12 +26,28 @@
   }
 }
 
+.font-masjid {
+  font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+}
+
 .font-display {
   font-family: 'Cormorant Garamond', Georgia, serif;
 }
 
+.font-calligraphy {
+  font-family: 'Aref Ruqaa', 'Amiri', 'Noto Naskh Arabic', serif;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
 .font-arabic {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  font-family: 'Amiri', 'Noto Naskh Arabic', serif;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
+.font-urdu {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+  line-height: 1.95;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
 }
 
 .font-mono-tabular {

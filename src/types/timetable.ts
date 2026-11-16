@@ -115,6 +115,10 @@ export interface TimetablePayload {
     visible: boolean;
     isFriday: boolean;
     configured: boolean;
+    bayanTime24: string;
+    bayanTime12: string;
+    khutbahTime24: string;
+    khutbahTime12: string;
     time24: string;
     time12: string;
     showAllWeek: boolean;

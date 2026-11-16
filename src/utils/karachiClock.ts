@@ -234,3 +234,20 @@ export function formatTime24To12Client(time24: string): string {
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(min).padStart(2, '0')} ${period}`;
 }
+
+export function formatTime24ToUrduPhrase(time24: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((time24 || '').trim());
+  if (!m) return time24;
+  const h = Number(m[1]);
+  const min = m[2];
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const partOfDay =
+    h >= 4 && h < 12
+      ? 'صبح'
+      : h >= 12 && h < 16
+        ? 'دوپہر'
+        : h >= 16 && h < 19
+          ? 'شام'
+          : 'رات';
+  return `${partOfDay} ${h12}:${min} بجے`;
+}

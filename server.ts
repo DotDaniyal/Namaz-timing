@@ -381,21 +381,40 @@ async function startServer() {
 
   // Jumu'ah Prayer Settings
   app.put('/api/admin/jumuah', requireAdmin, (req, res) => {
-    const { jumuahTime, showAllWeek, noteEn, noteUr } = req.body || {};
+    const { bayanTime, khutbahTime, jumuahTime, showAllWeek, noteEn, noteUr } = req.body || {};
+    const cleanBayan = bayanTime ? String(bayanTime).trim() : '';
+    const cleanKhutbah = khutbahTime ? String(khutbahTime).trim() : '';
     const cleanTime = jumuahTime ? String(jumuahTime).trim() : '';
+    if (cleanBayan && !isValidTime24(cleanBayan)) {
+      res.status(400).json({ error: 'Bayan time must be HH:MM (24h)' });
+      return;
+    }
+    if (cleanKhutbah && !isValidTime24(cleanKhutbah)) {
+      res.status(400).json({ error: 'Khutbah time must be HH:MM (24h)' });
+      return;
+    }
     if (cleanTime && !isValidTime24(cleanTime)) {
       res.status(400).json({ error: 'Jumuah time must be HH:MM (24h)' });
       return;
     }
     db.prepare(
       `UPDATE mosque_settings SET
+         jumuah_bayan_time = ?,
+         jumuah_khutbah_time = ?,
          jumuah_time = ?,
          jumuah_show_all_week = ?,
          jumuah_note_en = ?,
          jumuah_note_ur = ?,
          updated_at = datetime('now')
        WHERE id = 1`,
-    ).run(cleanTime, showAllWeek ? 1 : 0, String(noteEn || ''), String(noteUr || ''));
+    ).run(
+      cleanBayan || '12:30',
+      cleanKhutbah || '13:15',
+      cleanTime || '13:30',
+      showAllWeek ? 1 : 0,
+      String(noteEn || ''),
+      String(noteUr || ''),
+    );
     res.json({ ok: true });
   });
 

@@ -119,6 +119,8 @@ export async function buildTodayTimetablePayload(forceRefreshApi = false) {
     mosque_name_en: string;
     mosque_name_ar: string;
     zuhr_fixed_time: string;
+    jumuah_bayan_time: string;
+    jumuah_khutbah_time: string;
     jumuah_time: string;
     jumuah_show_all_week: number;
     jumuah_note_en: string;
@@ -406,7 +408,10 @@ export async function buildTodayTimetablePayload(forceRefreshApi = false) {
     .get() as { adjustment_days: number; manual_override_enabled: number };
 
   const isFriday = karachi.weekdayIndex === 5;
-  const hasJumuahTime = Boolean(settings.jumuah_time && settings.jumuah_time.trim() !== '');
+  const bayan24 = (settings.jumuah_bayan_time || '12:30').trim();
+  const khutbah24 = (settings.jumuah_khutbah_time || '13:15').trim();
+  const jumuah24 = (settings.jumuah_time || '13:30').trim();
+  const hasJumuahTime = Boolean(jumuah24);
   const showJumuah = isFriday || (hasJumuahTime && settings.jumuah_show_all_week === 1);
 
   return {
@@ -470,8 +475,12 @@ export async function buildTodayTimetablePayload(forceRefreshApi = false) {
       visible: showJumuah,
       isFriday,
       configured: hasJumuahTime,
-      time24: settings.jumuah_time || '',
-      time12: hasJumuahTime ? formatTime24To12(settings.jumuah_time) : '',
+      bayanTime24: bayan24,
+      bayanTime12: bayan24 ? formatTime24To12(bayan24) : '',
+      khutbahTime24: khutbah24,
+      khutbahTime12: khutbah24 ? formatTime24To12(khutbah24) : '',
+      time24: jumuah24,
+      time12: hasJumuahTime ? formatTime24To12(jumuah24) : '',
       showAllWeek: settings.jumuah_show_all_week === 1,
       noteEn: settings.jumuah_note_en,
       noteUr: settings.jumuah_note_ur,

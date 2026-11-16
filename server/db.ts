@@ -37,8 +37,10 @@ export function getDb(): DatabaseSync {
       mosque_name_en TEXT NOT NULL DEFAULT 'MASJID-E-BILAL',
       mosque_name_ar TEXT NOT NULL DEFAULT 'مسجدِ بلال',
       zuhr_fixed_time TEXT NOT NULL DEFAULT '13:30',
-      jumuah_time TEXT NOT NULL DEFAULT '',
-      jumuah_show_all_week INTEGER NOT NULL DEFAULT 0,
+      jumuah_bayan_time TEXT NOT NULL DEFAULT '12:30',
+      jumuah_khutbah_time TEXT NOT NULL DEFAULT '13:15',
+      jumuah_time TEXT NOT NULL DEFAULT '13:30',
+      jumuah_show_all_week INTEGER NOT NULL DEFAULT 1,
       jumuah_note_en TEXT NOT NULL DEFAULT '',
       jumuah_note_ur TEXT NOT NULL DEFAULT '',
       maghrib_auto_enabled INTEGER NOT NULL DEFAULT 1,
@@ -188,6 +190,30 @@ export function getDb(): DatabaseSync {
   if (!cols.some((c) => c.name === 'is_default_seeded')) {
     db.exec(`ALTER TABLE admin_users ADD COLUMN is_default_seeded INTEGER NOT NULL DEFAULT 1;`);
   }
+
+  // Ensure older DBs have structured Friday prayer timings
+  const mosqueCols = db.prepare(`PRAGMA table_info(mosque_settings)`).all() as Array<{ name: string }>;
+  if (!mosqueCols.some((c) => c.name === 'jumuah_bayan_time')) {
+    db.exec(`ALTER TABLE mosque_settings ADD COLUMN jumuah_bayan_time TEXT NOT NULL DEFAULT '12:30';`);
+  }
+  if (!mosqueCols.some((c) => c.name === 'jumuah_khutbah_time')) {
+    db.exec(`ALTER TABLE mosque_settings ADD COLUMN jumuah_khutbah_time TEXT NOT NULL DEFAULT '13:15';`);
+  }
+  // Initialize default Jumu'ah time (1:30 PM) only if previously blank/unconfigured
+  db.prepare(
+    `UPDATE mosque_settings SET jumuah_time = '13:30', jumuah_show_all_week = 1 WHERE id = 1 AND (jumuah_time IS NULL OR jumuah_time = '')`,
+  ).run();
+  // One-time cleanup if legacy pre-redesign note held duplicated Bayan/Khutbah/Salah text
+  db.prepare(
+    `UPDATE mosque_settings
+     SET jumuah_time = '13:30',
+         jumuah_bayan_time = '12:30',
+         jumuah_khutbah_time = '13:15',
+         jumuah_show_all_week = 1,
+         jumuah_note_en = '',
+         jumuah_note_ur = ''
+     WHERE id = 1 AND jumuah_note_en LIKE 'Bayan Starts: 12:30 PM%'`,
+  ).run();
 
   seedInitialData(db);
   dbInstance = db;
