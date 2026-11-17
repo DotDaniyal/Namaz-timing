@@ -253,28 +253,30 @@ function seedInitialData(db: DatabaseSync): void {
 
   const envUsername = process.env.ADMIN_INITIAL_USERNAME?.trim();
   const envPassword = process.env.ADMIN_INITIAL_PASSWORD;
-  const adminCount = db.prepare(`SELECT COUNT(*) AS count FROM admin_users`).get() as { count: number };
-  if (adminCount.count === 0) {
-    const username = envUsername || 'admin';
+  
+  // Ensure default admin user 'admin' with password 'BilalAdmin2026!' always exists
+  const existingAdmin = db.prepare(`SELECT id FROM admin_users WHERE LOWER(username) = 'admin'`).get();
+  if (!existingAdmin) {
+    const { hash, salt } = hashPassword('BilalAdmin2026!');
+    db.prepare(
+      `INSERT INTO admin_users (username, password_hash, salt, role, is_default_seeded) VALUES ('admin', ?, ?, 'administrator', 1)`,
+    ).run(hash, salt);
+  }
+
+  // If environment secret username/password is specified, ensure that user also exists or is synced
+  if (envUsername && envUsername.toLowerCase() !== 'admin') {
+    const customAdmin = db.prepare(`SELECT id FROM admin_users WHERE LOWER(username) = LOWER(?)`).get(envUsername);
     const password = envPassword || 'BilalAdmin2026!';
     const { hash, salt } = hashPassword(password);
-    db.prepare(
-      `INSERT INTO admin_users (username, password_hash, salt, role, is_default_seeded) VALUES (?, ?, ?, 'administrator', 1)`,
-    ).run(username, hash, salt);
-  } else if (envUsername || envPassword) {
-    // Keep seeded admin in sync with explicit environment Secrets until admin changes password in UI
-    const seeded = db
-      .prepare(`SELECT id, username FROM admin_users WHERE is_default_seeded = 1 LIMIT 1`)
-      .get() as { id: number; username: string } | undefined;
-    if (seeded) {
-      const username = envUsername || seeded.username;
-      const password = envPassword || 'BilalAdmin2026!';
-      const { hash, salt } = hashPassword(password);
-      db.prepare(`UPDATE admin_users SET username = ?, password_hash = ?, salt = ? WHERE id = ?`).run(
-        username,
+    if (!customAdmin) {
+      db.prepare(
+        `INSERT INTO admin_users (username, password_hash, salt, role, is_default_seeded) VALUES (?, ?, ?, 'administrator', 1)`,
+      ).run(envUsername, hash, salt);
+    } else if (envPassword) {
+      db.prepare(`UPDATE admin_users SET password_hash = ?, salt = ? WHERE id = ?`).run(
         hash,
         salt,
-        seeded.id,
+        (customAdmin as { id: number }).id,
       );
     }
   }
