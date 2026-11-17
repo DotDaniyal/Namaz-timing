@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Activity,
   ArrowLeft,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Compass,
+  Copy,
   Eye,
   EyeOff,
   KeyRound,
@@ -17,38 +21,20 @@ import {
   Sun,
   Trash2,
 } from 'lucide-react';
+import {
+  adminFetch,
+  checkAdminSession,
+  getAuthUrlInfo,
+  loginAdmin,
+  logoutAdmin,
+  resolveAuthApiUrl,
+  setStoredAdminToken,
+  type LoginDiagnosticEntry,
+} from '../services/authService';
 import type { AnnouncementItem, AnnualScheduleRow, TimetablePayload } from '../types/timetable';
 import { MONTH_NAMES_EN } from '../utils/i18n';
 import { formatTime24To12Client } from '../utils/karachiClock';
 import { MosqueEmblem } from './MosqueEmblem';
-
-const ADMIN_TOKEN_KEY = 'masjid_admin_token';
-
-function getStoredAdminToken(): string {
-  try {
-    return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
-  } catch {
-    return '';
-  }
-}
-
-function setStoredAdminToken(token: string) {
-  try {
-    if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-    else sessionStorage.removeItem(ADMIN_TOKEN_KEY);
-  } catch {
-    // ignore
-  }
-}
-
-async function adminFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const token = getStoredAdminToken();
-  const headers = new Headers(init.headers || {});
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  return fetch(url, { ...init, headers, credentials: 'include' });
-}
 
 interface AdminPanelProps {
   onBackToSite: () => void;
@@ -133,6 +119,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
+  const [loginDiagnostics, setLoginDiagnostics] = useState<LoginDiagnosticEntry[]>([]);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [copiedDiagnostics, setCopiedDiagnostics] = useState(false);
+
+  const appendDiagnosticLog = useCallback((entry: LoginDiagnosticEntry) => {
+    setLoginDiagnostics((prev) => [...prev.slice(-49), entry]);
+  }, []);
 
   // Dashboard state
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -300,8 +293,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
   }, []);
 
   useEffect(() => {
-    adminFetch('/api/admin/session')
-      .then((res) => res.json())
+    checkAdminSession(appendDiagnosticLog)
       .then((data) => {
         if (data.authenticated) {
           setAuthenticated(true);
@@ -312,54 +304,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
         }
       })
       .finally(() => setAuthChecked(true));
-  }, [loadOverview]);
+  }, [appendDiagnosticLog, loadOverview]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loggingIn) return;
     setLoginError('');
     setLoggingIn(true);
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword }),
+      const result = await loginAdmin({
+        username: loginUsername,
+        password: loginPassword,
+        onLog: appendDiagnosticLog,
       });
-      const text = await res.text();
-      let json: any = {};
-      try {
-        json = text ? JSON.parse(text) : {};
-      } catch {
-        if (!res.ok) {
-          throw new Error(`Server status ${res.status}: ${text.slice(0, 120) || 'Authentication service error'}`);
+      if (!result.ok) {
+        setLoginError(result.error || 'Authentication failed');
+        if (result.status === 0 || result.status >= 500) {
+          setShowDiagnostics(true);
         }
-      }
-      if (!res.ok) {
-        setLoginError(json.error || `Authentication failed (Status ${res.status})`);
         return;
       }
-      if (json.token) {
-        setStoredAdminToken(json.token);
-      }
       setAuthenticated(true);
-      setAdminUsername(json.username || loginUsername.trim());
+      setAdminUsername(result.username || loginUsername.trim());
       setLoginPassword('');
       await loadOverview();
-    } catch (err) {
-      const msg = (err as Error).message;
-      if (msg && !msg.includes('JSON')) {
-        setLoginError(msg);
-      } else {
-        setLoginError('Network error or connection timeout while signing in. Please verify your connection.');
-      }
     } finally {
       setLoggingIn(false);
     }
   };
 
+  const handleCopyDiagnostics = async () => {
+    const urlInfo = getAuthUrlInfo();
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      authUrlInfo: urlInfo,
+      online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      logs: loginDiagnostics,
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      setCopiedDiagnostics(true);
+      window.setTimeout(() => setCopiedDiagnostics(false), 2500);
+    } catch {
+      // Clipboard API unavailable
+    }
+  };
+
   const handleLogout = async () => {
-    await adminFetch('/api/admin/logout', { method: 'POST' });
-    setStoredAdminToken('');
+    await logoutAdmin();
     setAuthenticated(false);
     setOverview(null);
   };
@@ -717,6 +710,105 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
               {loggingIn ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          {/* Login Request Diagnostic Log */}
+          <div className="pt-2 border-t border-[#0B3B2B]/10">
+            <button
+              type="button"
+              onClick={() => setShowDiagnostics((prev) => !prev)}
+              className="w-full min-h-[38px] flex items-center justify-between text-xs font-medium text-[#0B3B2B]/75 hover:text-[#0B3B2B] cursor-pointer"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5" />
+                <span>Login Request Diagnostics ({loginDiagnostics.length})</span>
+              </span>
+              {showDiagnostics ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {showDiagnostics && (
+              <div className="mt-2.5 rounded-xl border border-[#0B3B2B]/15 bg-[#FAF8F4] p-3 space-y-2.5 text-[11px]">
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#0B3B2B]/10">
+                  <div className="text-[#15241E]/80 truncate">
+                    <span className="font-semibold">Endpoint:</span>{' '}
+                    <span className="font-mono">{resolveAuthApiUrl('/api/admin/login')}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCopyDiagnostics}
+                      className="px-2 py-1 rounded-md border border-[#0B3B2B]/20 bg-white text-[#0B3B2B] hover:bg-[#F3EFE6] inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedDiagnostics ? 'Copied' : 'Copy'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLoginDiagnostics([])}
+                      className="px-2 py-1 rounded-md border border-[#0B3B2B]/20 bg-white text-[#15241E]/75 hover:bg-[#F3EFE6] cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 text-[10px] text-[#15241E]/75">
+                  <div>
+                    <span className="font-semibold">URL Source:</span> {getAuthUrlInfo().source}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Protocol:</span> {getAuthUrlInfo().pageProtocol}
+                  </div>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-1.5 font-mono text-[10px]">
+                  {loginDiagnostics.length === 0 ? (
+                    <div className="text-[#15241E]/55 py-2 text-center">
+                      No login requests recorded yet.
+                    </div>
+                  ) : (
+                    loginDiagnostics.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded-lg border border-[#0B3B2B]/10 bg-white p-2 space-y-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`px-1.5 py-0.5 rounded font-semibold uppercase ${
+                              entry.level === 'error'
+                                ? 'bg-red-100 text-red-800'
+                                : entry.level === 'warn'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : entry.level === 'success'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-[#0B3B2B]/10 text-[#0B3B2B]'
+                            }`}
+                          >
+                            {entry.stage}
+                          </span>
+                          <span className="text-[#15241E]/50">
+                            {new Date(entry.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="text-[#15241E] break-words">{entry.message}</div>
+                        {entry.meta && (
+                          <div className="text-[#15241E]/65 break-all">
+                            {Object.entries(entry.meta)
+                              .filter(([, v]) => v !== undefined)
+                              .map(([k, v]) => `${k}=${String(v)}`)
+                              .join(' · ')}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

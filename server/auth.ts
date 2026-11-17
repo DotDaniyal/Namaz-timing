@@ -94,8 +94,53 @@ export function getAuthenticatedAdmin(req: Request): SessionPayload | null {
   return { ...session, username: user.username, role: user.role };
 }
 
+export function getPublicAppUrl(): string {
+  const raw = (process.env.VITE_APP_URL || process.env.APP_URL || '').trim();
+  if (!raw || raw === 'MY_APP_URL') return '';
+  try {
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const parsed = new URL(withProtocol);
+    if (
+      parsed.protocol === 'http:' &&
+      parsed.hostname !== 'localhost' &&
+      parsed.hostname !== '127.0.0.1'
+    ) {
+      parsed.protocol = 'https:';
+    }
+    const cleanPath = parsed.pathname.replace(/\/+$/, '');
+    return `${parsed.origin}${cleanPath === '/' ? '' : cleanPath}`;
+  } catch {
+    return '';
+  }
+}
+
+export function isAllowedCorsOrigin(origin: string, reqHost?: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    const appUrl = getPublicAppUrl();
+    if (appUrl) {
+      const configuredOrigin = new URL(appUrl).origin;
+      if (parsed.origin === configuredOrigin) return true;
+    }
+    if (reqHost && parsed.host === reqHost) return true;
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
+    if (parsed.hostname.endsWith('.vercel.app') || parsed.hostname.endsWith('.run.app')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function isRequestHttps(req: Request): boolean {
+  const host = String(req.headers.host || '');
+  const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host);
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') return true;
+  const appUrl = getPublicAppUrl();
+  return !isLocalhost && appUrl.startsWith('https://');
+}
+
 export function setSessionCookie(req: Request, res: Response, token: string): void {
-  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const isHttps = isRequestHttps(req);
   const attrs = isHttps
     ? 'HttpOnly; Path=/; SameSite=None; Secure'
     : 'HttpOnly; Path=/; SameSite=Lax';
@@ -106,7 +151,7 @@ export function setSessionCookie(req: Request, res: Response, token: string): vo
 }
 
 export function clearSessionCookie(req: Request, res: Response): void {
-  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const isHttps = isRequestHttps(req);
   const attrs = isHttps
     ? 'HttpOnly; Path=/; SameSite=None; Secure'
     : 'HttpOnly; Path=/; SameSite=Lax';

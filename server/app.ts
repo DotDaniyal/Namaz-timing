@@ -5,6 +5,8 @@ import {
   clearSessionCookie,
   createSessionToken,
   getAuthenticatedAdmin,
+  getPublicAppUrl,
+  isAllowedCorsOrigin,
   requireAdmin,
   setSessionCookie,
 } from './auth.ts';
@@ -22,7 +24,20 @@ export function createApiApp(): express.Express {
   app.use(express.json({ limit: '1mb' }));
 
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const reqOrigin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+    const publicAppUrl = getPublicAppUrl();
+
+    if (reqOrigin && isAllowedCorsOrigin(reqOrigin, req.headers.host)) {
+      res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+    } else if (!reqOrigin && publicAppUrl) {
+      res.setHeader('Access-Control-Allow-Origin', publicAppUrl);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else if (!reqOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     if (req.method === 'OPTIONS') {
