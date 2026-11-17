@@ -325,20 +325,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToSite, onDataUpda
         credentials: 'include',
         body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword }),
       });
-      const json = await res.json();
+      const text = await res.text();
+      let json: any = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch {
+        if (!res.ok) {
+          throw new Error(`Server status ${res.status}: ${text.slice(0, 120) || 'Authentication service error'}`);
+        }
+      }
       if (!res.ok) {
-        setLoginError(json.error || 'Authentication failed');
+        setLoginError(json.error || `Authentication failed (Status ${res.status})`);
         return;
       }
       if (json.token) {
         setStoredAdminToken(json.token);
       }
       setAuthenticated(true);
-      setAdminUsername(json.username);
+      setAdminUsername(json.username || loginUsername.trim());
       setLoginPassword('');
       await loadOverview();
-    } catch {
-      setLoginError('Network error while signing in');
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg && !msg.includes('JSON')) {
+        setLoginError(msg);
+      } else {
+        setLoginError('Network error or connection timeout while signing in. Please verify your connection.');
+      }
     } finally {
       setLoggingIn(false);
     }
